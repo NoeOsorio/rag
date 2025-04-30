@@ -89,4 +89,4 @@ vector_db/
 data/processed/
 data/raw/
 embeddings/
-
+db/
