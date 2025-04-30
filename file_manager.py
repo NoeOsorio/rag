@@ -1,5 +1,5 @@
 # Importa el TextLoader de langchain para cargar documentos de texto
-from langchain.document_loaders import TextLoader
+from langchain_community.document_loaders import TextLoader
 
 def load_documents(file_path):
     """
