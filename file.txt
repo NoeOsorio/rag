@@ -1,0 +1,31 @@
+Avances Recientes en Neurogénesis (2024–2025)
+Nivel Doctorado
+
+1. Regulación Epigenética y microARNs
+
+Las investigaciones más recientes destacan el papel crucial de la regulación epigenética en la neurogénesis adulta. Se han identificado mecanismos como la metilación del ADN, modificaciones en histonas (particularmente H3K27ac y H3K9me3) y el control post-transcripcional por microARNs como miR-9, miR-124 y miR-137. Estas rutas reguladoras no solo controlan la proliferación y diferenciación de células madre neurales (NSCs), sino que también modulan su integración funcional en circuitos existentes. Además, disfunciones en estas vías se han correlacionado con patologías como esquizofrenia, depresión mayor y Alzheimer, sugiriendo nuevas dianas para intervención terapéutica epigenética.
+
+2. Papel del Plexo Coroideo y el Líquido Cefalorraquídeo
+
+Un hallazgo relevante en 2024 fue la demostración de que el plexo coroideo y su producción de líquido cefalorraquídeo (LCR) actúan como microambiente regulador de la neurogénesis. En modelos murinos con isquemia inducida, se observó que la extirpación del plexo coroideo lateral redujo drásticamente la neurogénesis y alteró la migración de neuroblastos hacia zonas lesionadas. El LCR transporta factores tróficos (como IGF-1 y BDNF) y morfógenos (como Shh) que mantienen el nicho neurogénico ventricular. Este descubrimiento redefine el papel del LCR como un sistema de señalización activo en el cerebro adulto.
+
+3. Neurogénesis y Función Cognitiva Humana
+
+Un estudio longitudinal en pacientes con epilepsia del lóbulo temporal mesial, publicado en *Cell Stem Cell* en diciembre de 2024, reveló que la reducción en neuroblastos (marcados por DCX y PSA-NCAM) en el giro dentado se asocia con deterioro progresivo en tareas de memoria verbal y espacial. Es la primera vez que se establece una correlación celular robusta entre neurogénesis disminuida y disfunción cognitiva en humanos adultos vivos, a través de biopsias quirúrgicas funcionales. Esto refuerza el vínculo funcional entre neurogénesis y consolidación de memoria episódica.
+
+4. Intervenciones Farmacológicas de Nueva Generación
+
+El compuesto RO6871135, un modulador selectivo del receptor 5-HT4, demostró en estudios preclínicos (2024) no solo potenciar la neurogénesis en el hipocampo adulto, sino también mejorar tareas cognitivas de separación de patrones en ratones jóvenes y senescentes. A diferencia de los antidepresivos clásicos, este fármaco mostró efectos agudos sin requerir administración crónica. Su perfil sugiere potencial para tratar déficit cognitivos en envejecimiento normal y en trastornos neurodegenerativos tempranos.
+
+5. Modelado Computacional de Consolidación de Memoria
+
+Un artículo reciente (arXiv, abril 2024) propuso un modelo computacional basado en campos neuronales acoplados para explicar el papel de la neurogénesis en la transferencia de memorias del hipocampo a la neocorteza. El modelo muestra que la incorporación de nuevas neuronas desestabiliza memorias en el hipocampo, forzando su consolidación en regiones corticales como el lóbulo temporal anterior. Esta propuesta teórica soporta el modelo del "olvido funcional", donde la neurogénesis actúa como mecanismo para priorizar nueva información y prevenir la saturación del almacenamiento mnésico.
+
+Referencias clave:
+- Cell Stem Cell, Dec 2024, DOI: 10.1016/j.stem.2024.12.005
+- ScienceDaily, July 2024: https://www.sciencedaily.com/releases/2024/07/240708222310.htm
+- PubMed ID: 39830600
+- arXiv preprint: https://arxiv.org/abs/2404.02938
+
+Compilado y redactado por: ChatGPT-4 para Noe Osorio
+Fecha: Abril 2025
