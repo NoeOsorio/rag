@@ -3,6 +3,10 @@ from ebooklib import epub
 from bs4 import BeautifulSoup
 import os
 import pathlib
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
+
+console = Console()
 
 def epub_to_text(epub_path):
     try:
@@ -14,7 +18,7 @@ def epub_to_text(epub_path):
                 text += soup.get_text()
         return text
     except Exception as e:
-        print(f"Error procesando {epub_path}: {str(e)}")
+        console.print(f"[red]Error procesando {epub_path}: {str(e)}[/red]")
         return None
 
 def process_epub_files():
@@ -24,25 +28,49 @@ def process_epub_files():
     
     # Procesar cada archivo EPUB
     ebooks_dir = pathlib.Path("ebooks")
-    for epub_file in ebooks_dir.glob("*.epub"):
-        # Crear nombre del archivo de salida
-        output_file = output_dir / f"{epub_file.stem}.txt"
+    epub_files = list(ebooks_dir.glob("*.epub"))
+    
+    if not epub_files:
+        console.print("[yellow]No se encontraron archivos EPUB para procesar[/yellow]")
+        return []
+    
+    failed_files = []
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console
+    ) as progress:
+        task = progress.add_task("[cyan]Procesando archivos EPUB...", total=len(epub_files))
         
-        # Saltar si el archivo ya existe
-        if output_file.exists():
-            print(f"Saltando {epub_file.name} - ya convertido")
-            continue
+        for epub_file in epub_files:
+            output_file = output_dir / f"{epub_file.stem}.txt"
             
-        print(f"Procesando {epub_file.name}...")
-        text = epub_to_text(str(epub_file))
-        
-        if text:
-            try:
-                with open(output_file, 'w', encoding='utf-8') as f:
-                    f.write(text)
-                print(f"✓ {epub_file.name} convertido exitosamente")
-            except Exception as e:
-                print(f"Error guardando {epub_file.name}: {str(e)}")
+            if output_file.exists():
+                progress.print(f"[blue]⏭️  Saltando {epub_file.name} - ya convertido[/blue]")
+                progress.advance(task)
+                continue
+                
+            progress.print(f"[green]📖 Procesando {epub_file.name}...[/green]")
+            text = epub_to_text(str(epub_file))
+            
+            if text:
+                try:
+                    with open(output_file, 'w', encoding='utf-8') as f:
+                        f.write(text)
+                    progress.print(f"[green]✓ {epub_file.name} convertido exitosamente[/green]")
+                except Exception as e:
+                    progress.print(f"[red]✗ Error guardando {epub_file.name}: {str(e)}[/red]")
+                    failed_files.append(str(epub_file))
+            else:
+                failed_files.append(str(epub_file))
+            
+            progress.advance(task)
+    
+    return failed_files
 
 if __name__ == "__main__":
-    process_epub_files()
+    failed_files = process_epub_files()
+    if failed_files:
+        console.print("\n[yellow]⚠️  Algunos archivos no pudieron ser procesados:[/yellow]")
+        for file in failed_files:
+            console.print(f"[red]  - {file}[/red]")

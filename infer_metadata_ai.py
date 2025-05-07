@@ -2,11 +2,15 @@ from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 import json
 import os
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
+
+console = Console()
 
 def infer_metadata_with_gpt(file_path: str) -> dict:
     # Verificar que el archivo existe
     if not os.path.exists(file_path):
-        print(f"Error: El archivo {file_path} no existe")
+        console.print(f"[red]Error: El archivo {file_path} no existe[/red]")
         return {"title": None, "author": None, "topic": None}
 
     # Leer los primeros 1000 caracteres del archivo
@@ -14,7 +18,7 @@ def infer_metadata_with_gpt(file_path: str) -> dict:
         with open(file_path, "r", encoding="utf-8") as f:
             text = f.read(1000)
     except Exception as e:
-        print(f"Error al leer el archivo: {str(e)}")
+        console.print(f"[red]Error al leer el archivo: {str(e)}[/red]")
         return {"title": None, "author": None, "topic": None}
 
     # Crear el prompt template
@@ -49,11 +53,11 @@ def infer_metadata_with_gpt(file_path: str) -> dict:
         try:
             return json.loads(response.content)
         except json.JSONDecodeError:
-            print(f"Error al parsear el JSON: {response.content}")
+            console.print(f"[red]Error al parsear el JSON: {response.content}[/red]")
             return {"title": None, "author": None, "topic": None}
             
     except Exception as e:
-        print(f"Error al procesar con GPT: {str(e)}")
+        console.print(f"[red]Error al procesar con GPT: {str(e)}[/red]")
         return {"title": None, "author": None, "topic": None}
 
 def process_all_books():
@@ -63,29 +67,54 @@ def process_all_books():
     
     # Procesar cada archivo de texto
     text_books_dir = "text_books"
-    for txt_file in os.listdir(text_books_dir):
-        if txt_file.endswith(".txt"):
-            # Crear nombre del archivo de metadata
+    txt_files = [f for f in os.listdir(text_books_dir) if f.endswith(".txt")]
+    
+    if not txt_files:
+        console.print("[yellow]No se encontraron archivos de texto para analizar[/yellow]")
+        return []
+    
+    failed_files = []
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console
+    ) as progress:
+        task = progress.add_task("[cyan]Analizando libros...", total=len(txt_files))
+        
+        for txt_file in txt_files:
             metadata_file = os.path.join(metadata_dir, f"{os.path.splitext(txt_file)[0]}_metadata.json")
             
-            # Saltar si el archivo de metadata ya existe
             if os.path.exists(metadata_file):
-                print(f"Saltando {txt_file} - metadata ya extraída")
+                progress.print(f"[blue]⏭️  Saltando {txt_file} - metadata ya extraída[/blue]")
+                progress.advance(task)
                 continue
                 
             file_path = os.path.join(text_books_dir, txt_file)
-            print(f"\nProcesando {txt_file}...")
+            progress.print(f"[green]📚 Analizando {txt_file}...[/green]")
             
-            # Extraer metadata
             metadata = infer_metadata_with_gpt(file_path)
             
-            # Guardar metadata en archivo JSON
-            with open(metadata_file, "w", encoding="utf-8") as f:
-                json.dump(metadata, f, ensure_ascii=False, indent=2)
+            if metadata["title"] or metadata["author"] or metadata["topic"]:
+                try:
+                    with open(metadata_file, "w", encoding="utf-8") as f:
+                        json.dump(metadata, f, ensure_ascii=False, indent=2)
+                    progress.print(f"[green]✓ Metadata extraída exitosamente para {txt_file}[/green]")
+                except Exception as e:
+                    progress.print(f"[red]✗ Error guardando metadata de {txt_file}: {str(e)}[/red]")
+                    failed_files.append(file_path)
+            else:
+                progress.print(f"[red]✗ No se pudo extraer metadata de {txt_file}[/red]")
+                failed_files.append(file_path)
             
-            print(f"Metadata guardada en {metadata_file}")
+            progress.advance(task)
+    
+    return failed_files
 
 if __name__ == "__main__":
-    process_all_books()
+    failed_files = process_all_books()
+    if failed_files:
+        console.print("\n[yellow]⚠️  Algunos archivos no pudieron ser procesados:[/yellow]")
+        for file in failed_files:
+            console.print(f"[red]  - {file}[/red]")
     
     

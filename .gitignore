@@ -90,3 +90,6 @@ data/processed/
 data/raw/
 embeddings/
 db/
+books_db/
+metadata/
+text_books/
