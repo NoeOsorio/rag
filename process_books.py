@@ -7,6 +7,7 @@ from rich.panel import Panel
 from rich import print as rprint
 import chromadb
 from chromadb.config import Settings
+from config import setup_openai_api
 from ebook_parser import process_epub_files
 from infer_metadata_ai import process_all_books
 
@@ -60,7 +61,11 @@ def setup_chroma_db():
     except:
         collection = client.create_collection(
             name="books",
-            metadata={"hnsw:space": "cosine"}
+            metadata={
+                "hnsw:space": "cosine",
+                "embedding_model": "text-embedding-3-small",
+                "embedding_dimensions": 384
+            }
         )
         console.print("[green]✓ Nueva colección 'books' creada[/green]")
     
@@ -69,11 +74,11 @@ def setup_chroma_db():
 def load_existing_books(collection):
     """Carga los libros existentes en la base de datos"""
     try:
-        # Obtener todos los documentos
         result = collection.get()
-        if result and "ids" in result and result["ids"]:
-            console.print(f"[blue]📚 Se encontraron {len(result['ids'])} libros en la base de datos[/blue]")
-            return set(result["ids"])
+        if result and "metadatas" in result:
+            existing_books = {meta["book_id"] for meta in result["metadatas"] if "book_id" in meta}
+            console.print(f"[blue]📚 Se encontraron {len(existing_books)} libros únicos en la base de datos[/blue]")
+            return existing_books
         else:
             console.print("[yellow]ℹ️  No se encontraron libros en la base de datos[/yellow]")
             return set()
@@ -82,6 +87,10 @@ def load_existing_books(collection):
         return set()
 
 def process_books():
+    # Configurar API key de OpenAI
+    if not setup_openai_api():
+        return
+    
     """Proceso principal de orquestación"""
     console.print(Panel.fit(
         "[bold green]📚 Sistema de Procesamiento de Libros[/bold green]\n"
@@ -119,6 +128,22 @@ def process_books():
         console.print("[yellow]No se encontraron archivos para procesar[/yellow]")
         return
     
+    # Inicializar embeddings y text splitter
+    from langchain_openai import OpenAIEmbeddings
+    from langchain.text_splitter import RecursiveCharacterTextSplitter
+    
+    embeddings = OpenAIEmbeddings(
+        model="text-embedding-3-small",
+        dimensions=384
+    )
+    
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=200,
+        length_function=len,
+        separators=["\n\n", "\n", ".", "!", "?", ",", " ", ""]
+    )
+    
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
@@ -131,26 +156,20 @@ def process_books():
         for txt_file in txt_files:
             book_id = txt_file.stem
             
-            # Verificar si el libro ya está en la base de datos
-            if book_id in existing_books:
-                skipped_files.append(txt_file.name)
-                progress.print(f"[blue]⏭️  Saltando {txt_file.name} - ya en base de datos[/blue]")
-                progress.advance(task)
-                continue
-            
-            metadata_file = metadata_dir / f"{txt_file.stem}_metadata.json"
-            
             try:
-                # Leer el texto y la metadata
+                metadata_file = metadata_dir / f"{txt_file.stem}_metadata.json"
+
+                # Leer el texto del libro
                 with open(txt_file, "r", encoding="utf-8") as f:
                     text = f.read()
-                
+
+                # Leer metadata
                 if metadata_file.exists():
                     with open(metadata_file, "r", encoding="utf-8") as f:
                         metadata = json.load(f)
                 else:
                     metadata = {"title": None, "author": None, "topic": None}
-                
+
                 # Verificar nuevamente antes de agregar (por si acaso)
                 if book_id in existing_books:
                     skipped_files.append(txt_file.name)
@@ -158,20 +177,36 @@ def process_books():
                     progress.advance(task)
                     continue
                 
-                # Agregar a la base de datos
-                collection.add(
-                    documents=[text],
-                    metadatas=[{
-                        "id": book_id,
+                # Dividir el texto en chunks
+                chunks = text_splitter.split_text(text)
+
+                # Agrupar datos para un solo .add()
+                all_chunks = []
+                all_metadatas = []
+                all_ids = []
+
+                for i, chunk in enumerate(chunks):
+                    chunk_id = f"{book_id}_chunk_{i}"
+                    all_chunks.append(chunk)
+                    all_metadatas.append({
+                        "id": chunk_id,
+                        "book_id": book_id,
+                        "chunk_index": i,
                         "title": metadata.get("title", "Sin título"),
                         "author": metadata.get("author", "Autor desconocido"),
                         "topic": metadata.get("topic", "Sin tema")
-                    }],
-                    ids=[book_id]
+                    })
+                    all_ids.append(chunk_id)
+
+                # Agregar en un solo paso
+                collection.add(
+                    documents=all_chunks,
+                    metadatas=all_metadatas,
+                    ids=all_ids
                 )
-                
+
                 processed_files.append(txt_file.name)
-                progress.print(f"[green]✓ {txt_file.name} agregado a la base de datos[/green]")
+                progress.print(f"[green]✓ {txt_file.name} agregado a la base de datos ({len(chunks)} chunks)[/green]")
             except Exception as e:
                 progress.print(f"[red]✗ Error cargando {txt_file.name}: {str(e)}[/red]")
                 failed_db.append(str(txt_file))
@@ -215,4 +250,4 @@ def process_books():
     console.print("\n[bold]Base de datos guardada en:[/bold] books_db/")
 
 if __name__ == "__main__":
-    process_books() 
+    process_books()
